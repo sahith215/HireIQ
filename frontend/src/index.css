@@ -1,0 +1,345 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================
+   GLOBAL RESET & BASE STYLES
+   ========================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #04040A;
+  --color-text-primary: #F8FAFC;
+  --color-text-muted: #64748B;
+  --color-primary: #6366F1;
+  --color-primary-dark: #4F46E5;
+  --color-secondary: #8B5CF6;
+  --color-tertiary: #06B6D4;
+  
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(99, 102, 241, 0.4);
+  --glass-shadow-hover: rgba(99, 102, 241, 0.2);
+  
+  --mesh-1: #0A0A2E;
+  --mesh-2: #0D0A3E;
+  --mesh-3: #080820;
+
+  --nav-bg: rgba(4, 4, 10, 0.85);
+  --nav-border: rgba(255,255,255,0.07);
+}
+
+.light {
+  --color-bg: #F0F4F8;
+  --color-text-primary: #0F172A;
+  --color-text-muted: #475569;
+  --color-primary: #0EA5E9;
+  --color-primary-dark: #0284C7;
+  --color-secondary: #3B82F6;
+  --color-tertiary: #38BDF8;
+  
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(148, 163, 184, 0.3);
+  --glass-border-hover: rgba(14, 165, 233, 0.5);
+  --glass-shadow-hover: rgba(14, 165, 233, 0.2);
+  
+  --mesh-1: #E0F2FE;
+  --mesh-2: #DBEAFE;
+  --mesh-3: #F1F5F9;
+
+  --nav-bg: rgba(240, 244, 248, 0.85);
+  --nav-border: rgba(148,163,184,0.2);
+}
+
+html {
+  scroll-behavior: auto; /* Lenis handles smooth scroll */
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* ==========================================
+   SCROLLBAR REMOVAL
+   ========================================== */
+::-webkit-scrollbar { display: none; }
+* { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ==========================================
+   SELECTION
+   ========================================== */
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: #F8FAFC;
+}
+
+/* ==========================================
+   DOT GRID OVERLAY PATTERN
+   ========================================== */
+.dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ==========================================
+   GLASS CARD
+   ========================================== */
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
+  transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: 0 20px 40px var(--glass-shadow-hover);
+}
+
+/* ==========================================
+   GRADIENT TEXT
+   ========================================== */
+.gradient-text-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-secondary {
+  background: linear-gradient(135deg, var(--color-tertiary), var(--color-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==========================================
+   GRADIENT BUTTONS
+   ========================================== */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+.btn-primary:hover::after {
+  opacity: 1;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 30px var(--glass-shadow-hover);
+  transform: translateY(-3px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--glass-border);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-ghost:hover {
+  background: var(--glass-bg);
+  border-color: var(--color-primary);
+}
+
+/* ==========================================
+   MESH BACKGROUND ANIMATION
+   ========================================== */
+.mesh-bg {
+  animation: meshBg 8s ease-in-out infinite;
+}
+
+/* ==========================================
+   SHIMMER SKELETON EFFECT
+   ========================================== */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* ==========================================
+   SCROLL PROGRESS BAR
+   ========================================== */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-tertiary));
+  z-index: 9999;
+  transform-origin: left;
+  pointer-events: none;
+}
+
+/* ==========================================
+   NAVBAR NAV LINKS
+   ========================================== */
+.nav-link {
+  position: relative;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 4px 0;
+  transition: color 300ms;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--color-text-primary);
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* ==========================================
+   THEME UTILITIES BYPASS
+   ========================================== */
+.text-textprimary { color: var(--color-text-primary) !important; }
+.text-textmuted { color: var(--color-text-muted) !important; }
+
+/* ==========================================
+   TYPING TERMINAL EFFECT
+   ========================================== */
+.terminal-text {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 2;
+  color: #10B981;
+}
+
+/* ==========================================
+   SCORE RING ANIMATION
+   ========================================== */
+.ring-animated {
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================
+   WILL-CHANGE PERFORMANCE OPTIMIZATION
+   ========================================== */
+.will-transform {
+  will-change: transform;
+}
+
+.will-opacity {
+  will-change: opacity;
+}
+
+/* ==========================================
+   BENTO GRID
+   ========================================== */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto;
+  gap: 20px;
+}
+
+.bento-large {
+  grid-column: span 2;
+}
+
+@media (max-width: 1024px) {
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bento-large {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .bento-large {
+    grid-column: span 1;
+  }
+}
+
+/* ==========================================
+   ANIMATED SVG NODES
+   ========================================== */
+@keyframes nodePulse {
+  0%, 100% { r: 6; opacity: 1; }
+  50% { r: 8; opacity: 0.7; }
+}
+
+@keyframes flowLine {
+  0% { stroke-dashoffset: 200; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.node-pulse {
+  animation: nodePulse 1.5s ease-in-out infinite;
+}
+
+.flow-line {
+  animation: flowLine 2s linear infinite;
+  stroke-dasharray: 200;
+}
+
+/* ==========================================
+   PREFERS REDUCED MOTION
+   ========================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "hireiq",
+  "version": "1.0.0",
+  "description": "HireIQ — AI Hiring Evaluator SaaS (MERN + n8n Agentic RAG)",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev": "start /B npm run dev:backend && npm run dev:frontend",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install",
+    "
