@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: hireiq-app
+    env: node
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
+      - key: N8N_URL
+        value: https://YOUR-PUBLIC-N8N-URL.com/webhook/resume_upload

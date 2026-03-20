@@ -5,13 +5,17 @@ const fetch = require('node-fetch')
 const FormData = require('form-data')
 
 const app = express()
-const PORT = 3001
+// Port config
 
 // Use memory storage so we can pipe data directly
 const upload = multer({ storage: multer.memoryStorage() })
 
+const path = require('path')
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? '*' 
+    : ['http://localhost:5173', 'http://127.0.0.1:5173'],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
 }))
@@ -47,7 +51,7 @@ app.post('/api/evaluate', upload.single('data'), async (req, res) => {
     })
     formData.append('job_description', jobDescription.trim())
 
-    const N8N_URL = 'http://localhost:5678/webhook/resume_upload'
+    const N8N_URL = process.env.N8N_URL || 'http://localhost:5678/webhook/resume_upload'
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 120000)
@@ -96,7 +100,16 @@ app.post('/api/evaluate', upload.single('data'), async (req, res) => {
   }
 })
 
+// Serve static frontend files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')))
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'))
+  })
+}
+
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
-  console.log(`\n🚀 HireIQ Proxy Server running on http://localhost:${PORT}`)
-  console.log(`   Forwarding to: http://localhost:5678/webhook/resume_upload\n`)
+  console.log(`\n🚀 HireIQ Server running on port ${PORT}`)
+  console.log(`   Forwarding to: ${process.env.N8N_URL || 'http://localhost:5678/webhook/resume_upload'}\n`)
 })
