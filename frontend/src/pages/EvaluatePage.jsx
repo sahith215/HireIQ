@@ -32,10 +32,10 @@ export default function EvaluatePage() {
 
       {/* Main Layout */}
       <div
-        className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-[1600px] mx-auto w-full px-6 pb-8"
+        className="flex-1 flex flex-col gap-8 max-w-[1600px] mx-auto w-full px-6 pb-12"
       >
-        {/* Left: Upload */}
-        <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 120px)' }}>
+        {/* Top: Upload */}
+        <div className="flex flex-col flex-shrink-0" style={{ minHeight: '30vh' }}>
           <UploadPanel
             onResult={handleResult}
             onLoading={setIsLoading}
@@ -44,11 +44,8 @@ export default function EvaluatePage() {
           />
         </div>
 
-        {/* Right: Results */}
-        <div
-          className="flex flex-col sticky top-24"
-          style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}
-        >
+        {/* Bottom: Results */}
+        <div className="flex flex-col flex-1 w-full">
           <ResultsPanel result={result} isLoading={isLoading} />
         </div>
       </div>
