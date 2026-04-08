@@ -9,5 +9,8 @@ services:
         value: 3001
       - key: NODE_ENV
         value: production
+      # ⚠️ Set these in the Render dashboard — never hardcode real values here
       - key: N8N_URL
-        value: https://YOUR-PUBLIC-N8N-URL.com/webhook/resume_upload
+        sync: false   # e.g. https://your-n8n-instance.com/webhook/resume_upload
+      - key: GOOGLE_API_KEY
+        sync: false   # Your Google AI / Gemini API key

@@ -199,7 +199,7 @@ function QuestionCard({ question, rationale, expected_signal, index, color }) {
 // ==========================================
 // 5. Main ResultsPanel
 // ==========================================
-export default function ResultsPanel({ result, isLoading }) {
+export default function ResultsPanel({ result, isLoading, fileUrl }) {
   const [activeTab, setActiveTab] = useState('technical')
   
   const tabs = [
@@ -350,6 +350,85 @@ export default function ResultsPanel({ result, isLoading }) {
             <span>{formattedDate}</span>
           </div>
         </div>
+      </motion.div>
+
+      {/* ======================================= */}
+      {/* 1b. View Resume Card (orange)           */}
+      {/* ======================================= */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+        className="w-full rounded-2xl p-6 flex items-center justify-between gap-6"
+        style={{
+          background: 'linear-gradient(135deg, rgba(251,146,60,0.12) 0%, rgba(234,88,12,0.06) 100%)',
+          border: '1px solid rgba(251,146,60,0.25)',
+          boxShadow: '0 4px 24px rgba(251,146,60,0.08)',
+        }}
+      >
+        {/* Left — icon + text */}
+        <div className="flex items-center gap-4">
+          <div
+            className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.3)' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FB923C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-base" style={{ color: '#FB923C' }}>Candidate Resume</span>
+            <span className="text-xs mt-0.5" style={{ color: 'rgba(251,146,60,0.6)' }}>
+              {fileUrl ? 'Click to open the original PDF in a new tab' : 'No resume file linked to this candidate'}
+            </span>
+          </div>
+        </div>
+
+        {/* Right — button */}
+        {fileUrl ? (
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200"
+            style={{
+              background: 'rgba(251,146,60,0.18)',
+              border: '1px solid rgba(251,146,60,0.35)',
+              color: '#FB923C',
+              boxShadow: '0 2px 12px rgba(251,146,60,0.12)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(251,146,60,0.28)'
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(251,146,60,0.22)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(251,146,60,0.18)'
+              e.currentTarget.style.boxShadow = '0 2px 12px rgba(251,146,60,0.12)'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            View Resume
+          </a>
+        ) : (
+          <span
+            className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm cursor-not-allowed"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.2)',
+            }}
+          >
+            No Resume Available
+          </span>
+        )}
       </motion.div>
 
       {/* ======================================= */}

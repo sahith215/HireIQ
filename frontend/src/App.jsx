@@ -8,6 +8,8 @@ import Navbar from './components/landing/Navbar'
 import LandingPage from './pages/LandingPage'
 
 const EvaluatePage = lazy(() => import('./pages/EvaluatePage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const CandidatePage = lazy(() => import('./pages/CandidatePage'))
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -63,6 +65,30 @@ function App() {
               </div>
             }>
               <EvaluatePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/dashboard/:job_id"
+          element={
+            <Suspense fallback={
+              <div className="min-h-screen bg-bg flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"/>
+              </div>
+            }>
+              <DashboardPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/candidate/:candidate_id"
+          element={
+            <Suspense fallback={
+              <div className="min-h-screen bg-bg flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"/>
+              </div>
+            }>
+              <CandidatePage />
             </Suspense>
           }
         />

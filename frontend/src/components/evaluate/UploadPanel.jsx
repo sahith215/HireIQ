@@ -1,4 +1,5 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const STATUS_LABELS = {
@@ -6,6 +7,14 @@ const STATUS_LABELS = {
   uploading: 'Uploading…',
   analyzing: 'Agent reasoning…',
   done: 'Complete ✓',
+  error: 'Error',
+}
+
+const BULK_STATUS_LABELS = {
+  idle: 'Ready',
+  uploading: 'Uploading ZIP archive…',
+  analyzing: 'Generating presigned URLs…',
+  done: 'Bulk upload initialized ✓',
   error: 'Error',
 }
 
@@ -18,23 +27,37 @@ const STATUS_COLORS = {
 }
 
 export default function UploadPanel({ onResult, onLoading, status, setStatus }) {
+  const navigate = useNavigate()
+  const [mode, setMode] = useState('single') // 'single' or 'bulk'
   const [jobDescription, setJobDescription] = useState('')
   const [file, setFile] = useState(null)
+  const [topN, setTopN] = useState(10)
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
 
   const isLoading = status === 'uploading' || status === 'analyzing'
+  
+  // Clear file/error when mode changes
+  useEffect(() => {
+    setFile(null)
+    setError('')
+    setStatus('idle')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [mode, setStatus])
 
   const handleFile = useCallback((f) => {
     if (!f) return
-    if (f.type !== 'application/pdf') {
-      setError('Only PDF files are accepted.')
+    const expectedType = mode === 'single' ? 'application/pdf' : 'application/zip'
+    const expectedExt = mode === 'single' ? '.pdf' : '.zip'
+    
+    if (f.type !== expectedType && !f.name.toLowerCase().endsWith(expectedExt)) {
+      setError(`Only ${mode === 'single' ? 'PDF' : 'ZIP'} files are accepted in this mode.`)
       return
     }
     setError('')
     setFile(f)
-  }, [])
+  }, [mode])
 
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -51,8 +74,13 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
 
   const handleSubmit = async () => {
     if (!file || !jobDescription.trim()) {
-      setError('Please upload a PDF and enter a job description.')
+      setError(`Please upload a ${mode === 'single' ? 'PDF' : 'ZIP'} and enter a job description.`)
       return
+    }
+
+    if (mode === 'bulk' && (topN < 1 || topN > 50 || isNaN(topN))) {
+       setError('Top N candidates must be between 1 and 50.')
+       return
     }
 
     setError('')
@@ -62,16 +90,25 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
     const formData = new FormData()
     formData.append('data', file)
     formData.append('job_description', jobDescription.trim())
+    
+    if (mode === 'bulk') {
+      formData.append('top_n', topN.toString())
+    }
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 120000)
+    
+    const TARGET_URL = mode === 'single' ? '/webhook/resume_upload' : '/webhook/bulk_shortlist'
 
     try {
       // Simulate phase progression for UX
-      setTimeout(() => setStatus('analyzing'), 2000)
+      setTimeout(() => setStatus('analyzing'), mode === 'single' ? 2000 : 1500)
 
-      const response = await fetch('/api/evaluate', {
+      const response = await fetch(TARGET_URL, {
         method: 'POST',
+        headers: {
+          'x-api-key': import.meta.env.VITE_API_KEY
+        },
         body: formData,
         signal: controller.signal,
       })
@@ -79,7 +116,7 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
       clearTimeout(timeoutId)
 
       if (!response.ok) {
-        let msg = `Evaluation failed: ${response.status}`
+        let msg = `Request failed: ${response.status}`
         try {
           const data = await response.json()
           if (data.message || data.error) msg = data.message || data.error
@@ -89,14 +126,25 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
 
       const data = await response.json()
       setStatus('done')
-      onResult(data)
+      
+      if (mode === 'single') {
+        onResult(data)
+      } else {
+        // Bulk mode redirect to dashboard page immediately
+        const jobId = data.job_id
+        if (jobId) {
+          navigate(`/dashboard/${jobId}`)
+        } else {
+          setError('Success, but no job_id was found in the response.')
+        }
+      }
     } catch (err) {
       clearTimeout(timeoutId)
       setStatus('error')
       if (err.name === 'AbortError') {
-        setError('Evaluation is taking longer than expected. Please try again.')
+        setError('Request is taking longer than expected. Please try again.')
       } else if (err.message.includes('fetch')) {
-        setError('Could not reach the evaluation server. Make sure n8n is running on port 5678.')
+        setError('Could not reach the evaluation server. Make sure it is running.')
       } else {
         setError(err.message)
       }
@@ -118,13 +166,44 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
 
   return (
     <div className="glass-card p-8 flex flex-col gap-6 h-full">
+      {/* Mode Switcher */}
+      <div className="flex justify-center mb-2">
+        <div className="relative flex p-1 bg-[rgba(255,255,255,0.05)] rounded-full border border-[rgba(255,255,255,0.1)] w-full max-w-[400px]">
+          <button
+            onClick={() => !isLoading && setMode('single')}
+            disabled={isLoading}
+            className={`flex-1 relative z-10 py-2 text-sm font-medium rounded-full transition-colors ${mode === 'single' ? 'text-white' : 'text-textmuted hover:text-textprimary'}`}
+          >
+            Single Resume
+          </button>
+          <button
+            onClick={() => !isLoading && setMode('bulk')}
+            disabled={isLoading}
+            className={`flex-1 relative z-10 py-2 text-sm font-medium rounded-full transition-colors ${mode === 'bulk' ? 'text-white' : 'text-textmuted hover:text-textprimary'}`}
+          >
+            Bulk Shortlist
+          </button>
+          {/* Active indicator */}
+          <motion.div
+            layoutId="activeMode"
+            className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-indigo-500 rounded-full"
+            initial={false}
+            animate={{
+              left: mode === 'single' ? '4px' : 'calc(50% + 0px)'
+            }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            style={{ zIndex: 0 }}
+          />
+        </div>
+      </div>
+
       {/* Header */}
       <div>
         <h1 className="text-textprimary font-bold mb-1" style={{ fontSize: 24, letterSpacing: '-0.5px' }}>
-          Evaluate a Candidate
+          {mode === 'single' ? 'Evaluate a Candidate' : 'Batch Shortlist Resumes'}
         </h1>
         <p className="text-textmuted" style={{ fontSize: 14 }}>
-          Paste the job description and upload a resume PDF
+          {mode === 'single' ? 'Paste the job description and upload a resume PDF' : 'Upload a ZIP file of resumes to find the best matches'}
         </p>
       </div>
 
@@ -164,82 +243,125 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
         </div>
       </div>
 
-      {/* File Upload Zone */}
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-semibold text-textprimary">Resume PDF</label>
-        <AnimatePresence mode="wait">
-          {file ? (
-            <motion.div
-              key="file-selected"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              className="relative flex items-center gap-4 p-4 rounded-2xl"
-              style={{
-                background: 'rgba(16,185,129,0.06)',
-                border: '1px solid rgba(16,185,129,0.25)',
-              }}
-            >
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" className="flex-shrink-0">
-                <rect x="4" y="2" width="20" height="28" rx="3" stroke="#10B981" strokeWidth="1.5" fill="none" />
-                <path d="M4 22 L24 22" stroke="#10B981" strokeWidth="1" strokeOpacity="0.3" />
-                <path d="M8 12 L16 12 M8 17 L20 17" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.7" />
-                <circle cx="28" cy="26" r="6" fill="rgba(16,185,129,0.15)" stroke="#10B981" strokeWidth="1.5" />
-                <path d="M25 26 L27 28 L31 24" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <div className="flex-1 min-w-0">
-                <p className="text-textprimary font-medium text-sm truncate">{file.name}</p>
-                <p className="text-textmuted text-xs mt-0.5">{formatSize(file.size)}</p>
-              </div>
-              <button
-                onClick={removeFile}
-                className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-textmuted hover:text-textprimary transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)' }}
+      {/* Conditional Inputs */}
+      <div className="flex gap-6 flex-col lg:flex-row">
+        {/* Drop zone */}
+        <div className={`flex flex-col gap-2 ${mode === 'bulk' ? 'flex-[2]' : 'w-full'}`}>
+          <label className="text-sm font-semibold text-textprimary">
+            {mode === 'single' ? 'Resume PDF' : 'Resumes ZIP Archive'}
+          </label>
+          <AnimatePresence mode="wait">
+            {file ? (
+              <motion.div
+                key="file-selected"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                className="relative flex items-center gap-4 p-4 rounded-2xl h-full min-h-[160px]"
+                style={{
+                  background: 'rgba(16,185,129,0.06)',
+                  border: '1px solid rgba(16,185,129,0.25)',
+                }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M1 1 L11 11 M11 1 L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="drop-zone"
-              initial={{ opacity: 0 }}
-              exit={{ opacity: 0 }}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              whileHover={{ scale: 1.01 }}
-              animate={{
-                opacity: 1,
-                scale: dragging ? 1.02 : 1,
-                borderColor: dragging ? 'rgba(99,102,241,0.8)' : 'rgba(99,102,241,0.3)',
-                background: dragging ? 'rgba(99,102,241,0.08)' : 'transparent',
-              }}
-              className="flex flex-col items-center justify-center gap-3 cursor-pointer rounded-2xl min-h-[160px] transition-all"
-              style={{
-                border: '2px dashed rgba(99,102,241,0.3)',
-              }}
-            >
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                <path d="M20 28 L20 14 M20 14 L14 20 M20 14 L26 20" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 30 L10 34 L30 34 L30 30" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              <div className="text-center">
-                <p className="text-textprimary font-medium text-sm">Drop PDF here</p>
-                <p className="text-textmuted text-xs mt-1">or click to browse • PDF only</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,application/pdf"
-          className="hidden"
-          onChange={handleInputChange}
-        />
+                <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-[rgba(16,185,129,0.15)]">
+                  {mode === 'single' ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <polyline points="14 2 14 8 20 8" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                       <rect x="3" y="4" width="18" height="16" rx="2" stroke="#10B981" strokeWidth="2" />
+                       <path d="M9 4V8M9 8H15M15 8V12M15 12H9M9 12V16M9 16H15" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-textprimary font-medium text-sm truncate">{file.name}</p>
+                  <p className="text-textmuted text-xs mt-0.5">{formatSize(file.size)}</p>
+                </div>
+                <button
+                  onClick={removeFile}
+                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-textmuted hover:text-textprimary transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <path d="M1 1 L11 11 M11 1 L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="drop-zone"
+                initial={{ opacity: 0 }}
+                exit={{ opacity: 0 }}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                whileHover={{ scale: 1.01 }}
+                animate={{
+                  opacity: 1,
+                  scale: dragging ? 1.02 : 1,
+                  borderColor: dragging ? 'rgba(99,102,241,0.8)' : 'rgba(99,102,241,0.3)',
+                  background: dragging ? 'rgba(99,102,241,0.08)' : 'transparent',
+                }}
+                className="flex flex-col items-center justify-center gap-3 cursor-pointer rounded-2xl min-h-[160px] h-full transition-all"
+                style={{
+                  border: '2px dashed rgba(99,102,241,0.3)',
+                }}
+              >
+                <div className="w-12 h-12 rounded-full bg-[rgba(99,102,241,0.1)] flex items-center justify-center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="17 8 12 3 7 8" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="12" y1="3" x2="12" y2="15" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-textprimary font-medium text-sm">Drop {mode === 'single' ? 'PDF' : 'ZIP'} here</p>
+                  <p className="text-textmuted text-xs mt-1">or click to browse • {mode === 'single' ? 'PDF only' : 'ZIP archive'}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={mode === 'single' ? '.pdf,application/pdf' : '.zip,application/zip,application/x-zip-compressed'}
+            className="hidden"
+            onChange={handleInputChange}
+          />
+        </div>
+
+        {/* Extra inputs for Bulk Mode */}
+        {mode === 'bulk' && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex-1 flex flex-col gap-2"
+          >
+            <label className="text-sm font-semibold text-textprimary">Top N Candidates</label>
+            <div className="flex-1 relative flex items-center">
+              <input
+                 type="number"
+                 min="1"
+                 max="50"
+                 placeholder="10"
+                 className="w-full text-center text-4xl font-bold rounded-2xl h-full min-h-[160px] flex items-center justify-center text-textprimary"
+                 style={{
+                   background: 'var(--glass-bg)',
+                   border: '1px solid var(--glass-border)',
+                   outline: 'none',
+                 }}
+                 value={topN}
+                 onChange={(e) => setTopN(parseInt(e.target.value) || '')}
+              />
+              <div className="absolute top-4 left-0 right-0 text-center text-xs text-textmuted pointer-events-none">Target Size</div>
+              <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-textmuted pointer-events-none">Max: 50</div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Error */}
@@ -267,7 +389,7 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
         disabled={isLoading || !file || !jobDescription.trim()}
         whileHover={!isLoading ? { y: -3, boxShadow: '0 20px 40px rgba(99,102,241,0.35)' } : {}}
         whileTap={!isLoading ? { scale: 0.97 } : {}}
-        className="w-full rounded-2xl font-semibold relative overflow-hidden"
+        className="w-full rounded-2xl font-semibold relative overflow-hidden flex-shrink-0"
         style={{
           height: 56,
           background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
@@ -284,10 +406,10 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
               <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
               <path d="M12 2 A10 10 0 0 1 22 12" stroke="white" strokeWidth="3" strokeLinecap="round" />
             </svg>
-            AI is analyzing…
+            {mode === 'single' ? 'AI is analyzing…' : 'Processing resumes...'}
           </span>
         ) : (
-          'Evaluate Resume →'
+          mode === 'single' ? 'Evaluate Resume →' : 'Start Bulk Analysis →'
         )}
       </motion.button>
 
@@ -298,10 +420,13 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
           style={{
             background: STATUS_COLORS[status] || '#64748B',
             animation: isLoading ? 'dotPulse 1.4s ease-in-out infinite' : 'none',
+            boxShadow: isLoading ? `0 0 8px ${STATUS_COLORS[status] || '#64748B'}` : 'none'
           }}
         />
-        <span className="text-xs text-textmuted">
-          {STATUS_LABELS[status] || 'Ready'}
+        <span className="text-xs text-textmuted min-w-[120px]">
+          {mode === 'single' 
+            ? (STATUS_LABELS[status] || 'Ready') 
+            : (BULK_STATUS_LABELS[status] || 'Ready')}
         </span>
       </div>
     </div>
