@@ -170,9 +170,9 @@ Embedding magnitudes vary with text length. Cosine normalises for magnitude, mea
 
 | Candidate | Profile | Score | Outcome |
 |---|---|---|---|
-| Sahith Phiradi | MERN + ML + IoT + Blockchain | 0.667 | ✅ HIRE |
-| Phiradi Sai Sandeep | MERN full stack | 0.622 | 🎯 INTERVIEW |
-| Pothina Manasa Sree | Python + ML, no MERN | 0.619 | ❌ Not shortlisted |
+| Candidate 1 | MERN + ML + IoT + Blockchain | 0.667 | ✅ HIRE |
+| Candidate 2 | MERN full stack | 0.622 | 🎯 INTERVIEW |
+
 
 ---
 
