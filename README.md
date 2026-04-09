@@ -263,23 +263,6 @@ Every evaluated candidate gets a full structured report:
 
 ---
 
-## Interviewer Assessment
-
-> *"This project demonstrates genuine understanding of agentic systems, not just API wrappers. The candidate clearly understands retrieval, iteration, caching, and production constraints. The zero-cost architecture shows resourcefulness."*
-
-| Dimension | Score |
-|---|---|
-| Agentic Architecture | 8.5 / 10 |
-| RAG Implementation | 8.0 / 10 |
-| Pipeline Engineering | 9.0 / 10 |
-| System Design | 8.0 / 10 |
-| Code Quality | 7.0 / 10 |
-| **Overall** | **8.1 / 10** |
-
-*Verdict: Strong Hire for junior-to-mid AI Engineer role.*
-
----
-
 ## Author
 
 **Sahith Phiradi**
