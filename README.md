@@ -1,415 +1,365 @@
-<![CDATA[<div align="center">
+# HireIQ — Agentic RAG Hiring Platform
 
-# ⚡ HireIQ
+> Production-grade AI hiring platform that screens 500+ resumes in minutes, not days.
 
-### AI-Powered Hiring Intelligence Platform
-
-**Evaluate resumes, shortlist top talent, and get deep candidate insights — all in seconds.**
-
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![n8n](https://img.shields.io/badge/n8n-Agentic_RAG-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)](https://n8n.io/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-
-</div>
+**Built with the 1+99 philosophy — full production, zero shortcuts, zero cost.**
 
 ---
 
-## 📌 Overview
+## What Is HireIQ?
 
-**HireIQ** is a production-grade, AI-driven hiring evaluator built for modern recruiting teams. It uses an **Agentic RAG (Retrieval-Augmented Generation)** pipeline — powered by n8n workflow automation — to intelligently parse, score, and rank resumes against a given job description with near-human accuracy.
-
-Whether you're screening a single candidate or running bulk shortlisting across hundreds of resumes in a ZIP archive, HireIQ delivers structured evaluation reports in real time, persisted to Supabase and surfaced through a dynamic, animated dashboard.
-
-> Built for **speed**, **scale**, and **signal** — so recruiters can focus on people, not paperwork.
+HireIQ is a two-pipeline agentic RAG system that automates the most painful part of recruiting — resume screening. Upload a ZIP of 500+ resumes and a job description. HireIQ scores every resume using semantic vector embeddings, shortlists the top N candidates, and runs a deep 4-iteration AI agent analysis on each shortlisted resume — generating a complete evaluation report and 9 bespoke interview questions per candidate. Everything is stored in Supabase and displayed on a live recruiter dashboard.
 
 ---
 
-## ✨ Key Features
+## The Problem It Solves
 
-### 🎯 Single Resume Evaluation
-- Upload any **PDF resume** and paste a **job description**
-- The agentic n8n pipeline extracts skills, experience, and context
-- Returns a structured evaluation: **Skills Match Score**, **Experience Match Score**, **Recommendation** (`HIRE / INTERVIEW / MAYBE / REJECT`), and **Confidence** level
-- Results rendered in a rich, animated panel with score breakdowns
+A recruiter receiving 500 resumes for a single role faces 40+ hours of manual screening. Keyword-based ATS systems miss great candidates. Generic AI tools produce shallow, one-size-fits-all evaluations.
 
-### 📦 Bulk Shortlist Mode
-- Upload a **ZIP archive** of multiple resumes at once
-- Specify how many top candidates you need (up to 50)
-- AI pipeline processes every resume asynchronously and writes results to Supabase
-- Immediately redirected to a **real-time dashboard** that polls Supabase every 4 seconds
+HireIQ solves all three:
 
-### 📊 Real-Time Bulk Dashboard
-- Live polling dashboard at `/dashboard/:job_id`
-- Candidates split into **Shortlisted** and **Not Shortlisted** sections automatically
-- Animated score progress bars for **Skills Match** and **Experience Match**
-- Recommendation badges: `HIRE`, `INTERVIEW`, `MAYBE`, `REJECT`
-- Polling auto-stops when all shortlisted candidates are fully evaluated
-- **Connection-lost detection** with retry logic after 3 consecutive failures
-
-### 🧠 Full Candidate Profile Page
-- Deep-dive view at `/candidate/:candidate_id`
-- Full AI-generated evaluation: strengths, weaknesses, detailed recommendation rationale
-- Back navigation preserves job session context via `localStorage`
-
-### 🩺 n8n Health Badge
-- Live health check indicator on the Evaluate page
-- Reads from `VITE_N8N_URL` — works in both dev and production environments
-- Color-coded animated dot: **amber (checking)** → **green (online)** → **red (offline)**
-
-### 🎨 Premium UI/UX
-- Dark-mode glassmorphism design system
-- **Framer Motion** micro-animations and page transitions
-- **GSAP + ScrollTrigger** animations on the landing page
-- **Lenis** smooth-scroll for buttery-smooth inertia scrolling
-- Fully responsive layout — desktop-first with mobile support
+- **Speed** — 500 resumes processed in minutes via vector similarity scoring
+- **Accuracy** — Gemini's 3072-dimensional semantic embeddings capture meaning, not just keywords
+- **Depth** — A 4-iteration ReAct agent produces evaluations that rival a trained human reviewer
+- **Cost** — Entirely on free tiers. $0/month. Forever.
 
 ---
 
-## 🏗️ Architecture
+## Architecture Overview
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (Vite + React)                   │
-│  Landing Page → /evaluate → /dashboard/:job_id → /candidate/:id  │
-│              Hosted on Vercel (static)                           │
-└──────────────────┬──────────────────────────┬────────────────────┘
-                   │ POST /webhook/*           │ REST API
-                   ▼                           ▼
-┌──────────────────────────┐    ┌──────────────────────────────────┐
-│     n8n Workflow Engine   │    │         Supabase (PostgreSQL)    │
-│  - resume_upload webhook  │───▶│  candidates table                │
-│  - bulk_shortlist webhook │    │  evaluations table               │
-│  Agentic RAG pipeline:    │    │  (anon key — public read/write)  │
-│  Parse → Embed → Score    │    └──────────────────────────────────┘
-│  → Recommend → Persist    │
-└──────────────────────────┘
-           │
-┌──────────▼───────────────┐
-│  Backend Proxy (Express)  │
-│  /api/evaluate            │
-│  Hosted on Render         │
-└───────────────────────────┘
-```
-
-### Data Flow
-
-1. **Single Mode:** `Frontend → POST /webhook/resume_upload (n8n) → AI Pipeline → Supabase → Response JSON → Frontend`
-2. **Bulk Mode:** `Frontend → POST /webhook/bulk_shortlist (n8n) → Async AI Pipeline → Supabase → Frontend polls every 4s`
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/f12afe01-4e42-410b-a58d-bc3b41f6c713" />
 
 ---
 
-## 🗂️ Project Structure
-
-```
-HireIQ/
-├── backend/
-│   ├── server.js              # Express proxy server — forwards uploads to n8n
-│   ├── .env.example           # Backend environment template
-│   └── package.json
-│
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx            # Router, GSAP/Lenis init, lazy-loaded routes
-│   │   ├── main.jsx
-│   │   ├── index.css          # Global design system (CSS custom properties)
-│   │   ├── pages/
-│   │   │   ├── LandingPage.jsx        # Marketing landing page
-│   │   │   ├── EvaluatePage.jsx       # Single + bulk upload UI
-│   │   │   ├── DashboardPage.jsx      # Real-time bulk results dashboard
-│   │   │   └── CandidatePage.jsx      # Full candidate evaluation profile
-│   │   └── components/
-│   │       ├── evaluate/
-│   │       │   ├── UploadPanel.jsx    # File upload, mode switcher, submit
-│   │       │   └── ResultsPanel.jsx   # Evaluation results renderer
-│   │       ├── landing/
-│   │       │   ├── Navbar.jsx
-│   │       │   ├── HowItWorks.jsx
-│   │       │   └── ...
-│   │       └── ui/
-│   │           ├── ScrollProgress.jsx
-│   │           └── ErrorBoundary.jsx
-│   ├── .env.example           # Frontend environment template
-│   └── vite.config.js         # Dev proxy: /webhook → n8n, /api → backend
-│
-├── inflate-server.js          # DEFLATE decompression utility (local ZIP handling)
-├── render.yaml                # Render deployment configuration
-├── .gitignore                 # Excludes .env, node_modules, dist
-└── package.json               # Root scripts: install:all, build, start
-```
-
----
-
-## ⚙️ Tech Stack
+## Tech Stack
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Frontend Framework** | React 18 + Vite 5 | SPA with code-splitting and lazy loading |
-| **Styling** | Tailwind CSS 3 + Vanilla CSS | Design tokens, glassmorphism, dark mode |
-| **Animations** | Framer Motion + GSAP | Page transitions, micro-animations, scroll effects |
-| **Smooth Scroll** | Lenis (`@studio-freight/lenis`) | Inertia-based smooth scrolling |
-| **Routing** | React Router v6 | Client-side routing with dynamic params |
-| **Charts** | Recharts | Score visualization |
-| **Backend Proxy** | Node.js + Express | Forwards multipart file uploads to n8n |
-| **Workflow Engine** | n8n | Agentic RAG pipeline (PDF parse → AI score → persist) |
-| **Database** | Supabase (PostgreSQL) | Persists candidate and evaluation records |
-| **Deployment (FE)** | Vercel | Static hosting for the React build |
-| **Deployment (BE)** | Render | Node.js proxy server |
+| Workflow Engine | n8n self-hosted · localhost:5678 | Pipeline orchestration |
+| LLM | Groq · llama-3.3-70b-versatile | Agent reasoning + interview questions |
+| Embeddings | Gemini · gemini-embedding-001 | 3072-dimensional semantic vectors |
+| Vector DB | Supabase pgvector | Chunk storage + cosine similarity search |
+| Database | Supabase PostgreSQL | Jobs, candidates, evaluations, logs |
+| File Storage | Supabase Storage | PDF hosting with public URLs |
+| Frontend | React 18 + Vite + Tailwind CSS | Recruiter dashboard UI |
+| Decompression | inflate-server.js · Express | DEFLATE ZIP bypass for n8n vm2 sandbox |
 
 ---
 
-## 🚀 Getting Started
+## Features
+
+### Pipeline 1 — Bulk Shortlist
+
+- Accepts ZIP files containing 500+ resume PDFs
+- Parses ZIP Central Directory for accurate decompression (handles data descriptor ZIPs)
+- DEFLATE decompression via local inflate-server (bypasses n8n vm2 sandbox restrictions)
+- Uploads all PDFs to Supabase Storage instantly
+- Embeds each resume with Gemini's 3072-dim model
+- Computes cosine similarity against the job description embedding
+- Ranks all candidates and shortlists top N
+- Triggers Pipeline 2 for each shortlisted candidate automatically
+
+### Pipeline 2 — Deep Analysis
+
+- Section-aware semantic chunking (Skills, Experience, Projects, Education independently)
+- Stores all chunks with embeddings in Supabase pgvector
+- Retrieves top 8 most relevant chunks via pgvector cosine search
+- Runs 4-iteration focused ReAct agent loop:
+  - **Iteration 1** — Skills assessment
+  - **Iteration 2** — Experience match
+  - **Iteration 3** — Gap identification + strengths
+  - **Iteration 4** — Final synthesis + recommendation
+- Generates 9 tailored interview questions (3 technical, 3 behavioral, 3 scenario-based)
+- Caches results — same candidate + same JD = instant cached response
+- Exponential backoff retry on rate limits (5s → 15s → 45s)
+- Stagger delay prevents simultaneous Groq calls from concurrent executions
+
+### Recruiter Dashboard
+
+- Real-time polling every 4 seconds
+- Shortlisted candidates section with live evaluation cards
+- Non-shortlisted candidates section with resume links only
+- Cards update from ANALYZING → HIRE / INTERVIEW / REJECT as evaluations complete
+- Split view: PDF iframe + full evaluation panel per candidate
+- Approve / Reject actions with Supabase status update
+- Export evaluation to PDF
+
+---
+
+## Database Schema
+
+```sql
+-- One row per bulk upload run
+jobs (
+  id uuid PK,
+  title text,
+  job_description text,
+  jd_hash text unique,
+  max_shortlist int,
+  created_at timestamp
+)
+
+-- One row per resume processed
+candidates (
+  candidate_id text PK,
+  job_id uuid FK → jobs,
+  full_text text,
+  file_name text,
+  file_url text,
+  shortlist_score float,
+  status text,   -- scored | shortlisted | evaluated | approved | rejected
+  created_at timestamp
+)
+
+-- Vector store — one row per text chunk
+resume_chunks (
+  id uuid PK,
+  candidate_id text FK → candidates,
+  chunk_index int,
+  section_type text,
+  text text,
+  embedding vector(3072),
+  unique(candidate_id, chunk_index)
+)
+
+-- One full evaluation per candidate
+evaluations (
+  candidate_id text PK FK → candidates,
+  skills_match_score int,
+  experience_match_score int,
+  missing_skills jsonb,
+  strengths jsonb,
+  recommendation text,   -- hire | interview | reject
+  confidence text,       -- high | medium | low
+  reasoning_trace jsonb,
+  evidence jsonb,
+  interview_questions jsonb,
+  agent_meta jsonb,
+  created_at timestamp
+)
+
+-- Non-blocking error logging
+error_logs (
+  id uuid PK,
+  pipeline text,
+  node_name text,
+  candidate_id text,
+  error_message text,
+  error_detail jsonb,
+  created_at timestamp
+)
+
+-- API key authentication
+api_keys (key_hash text PK, created_at timestamp)
+```
+
+---
+
+## The Mathematics
+
+HireIQ uses **cosine similarity** to score every resume against the job description:
+cos(θ) = (A · B) / (‖A‖ × ‖B‖)
+
+Where `A` is the resume embedding and `B` is the JD embedding — both 3072-dimensional vectors from Gemini.
+
+**Why cosine and not dot product or Euclidean?**
+
+Embedding magnitudes vary with text length. Cosine normalises for magnitude, measuring only directional (topical) similarity. A short resume and a long resume covering the same skills produce equal cosine scores — which is the correct semantic behaviour.
+
+**Real scores from a live test run:**
+
+| Candidate | Profile | Score | Outcome |
+|---|---|---|---|
+| Sahith Phiradi | MERN + ML + IoT + Blockchain | 0.667 | ✅ HIRE |
+| Phiradi Sai Sandeep | MERN full stack | 0.622 | 🎯 INTERVIEW |
+| Pothina Manasa Sree | Python + ML, no MERN | 0.619 | ❌ Not shortlisted |
+
+---
+
+## The Agentic Loop
+
+Instead of one LLM call that produces shallow results, HireIQ runs a 4-iteration ReAct loop where each iteration has a single focused task:
+Iteration 1: OBSERVE resume chunks → THINK "What skills match?"       → partial_results.skills
+Iteration 2: OBSERVE + prior       → THINK "What experience matches?" → partial_results.experience
+Iteration 3: OBSERVE + prior       → THINK "What's missing?"          → partial_results.gaps
+Iteration 4: OBSERVE all prior     → THINK "Synthesise everything"    → final_output + recommendation
+
+The agent scratchpad accumulates across iterations. By iteration 4, the model synthesises from three complete prior analyses — producing evaluation depth comparable to a trained human reviewer.
+
+---
+
+## Key Engineering Decisions
+
+### The inflate-server Problem
+
+n8n's Code nodes run inside `vm2` — a sandboxed Node.js VM that blocks `require()` for native modules including `zlib`. Standard ZIP files use DEFLATE compression which requires `zlib` to decompress. Solution: `inflate-server.js` — a 40-line Express server that runs outside the sandbox on port 3001, receives compressed bytes via HTTP, decompresses with native `zlib`, and returns raw PDF bytes.
+
+### Central Directory ZIP Parsing
+
+Most ZIP parsers read sizes from local file headers — but Windows and Python's `zipfile` write `0` there when using data descriptors, storing real sizes after the compressed data. HireIQ reads the ZIP **Central Directory** at the end of the file, which always has correct sizes and offsets regardless of data descriptor usage.
+
+### JD Embedding Cache
+
+For 500 resumes sharing the same job description, calling Gemini 500 times for the same JD wastes quota. The JD embedding is cached in n8n's `$getWorkflowStaticData('global')` keyed by `jobId` — computed once, reused for every candidate in the same run.
+
+### Section-Aware Chunking
+
+Resume sections carry fundamentally different semantic content. Mixing Skills text with Education text in a single chunk degrades retrieval quality. HireIQ detects section boundaries via regex and chunks each section independently — ensuring Skills chunks are never mixed with Education chunks during pgvector retrieval.
+
+### Rate Limit Protection
+
+Two mechanisms protect against Groq 429 errors at scale:
+
+- **Stagger delay** — on iteration 1, each candidate waits `hash(candidate_id[-1]) % 5 × 3000ms` before calling Groq, spreading concurrent executions across 0–12 seconds
+- **Exponential backoff** — on 429 or 503, retries at 5s → 15s → 45s before failing
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- **Node.js** v18 or higher
-- **npm** v9 or higher
-- A running **n8n** instance (local or cloud) with the `resume_upload` and `bulk_shortlist` webhooks configured
-- A **Supabase** project with `candidates` and `evaluations` tables
+- Node.js 18+
+- n8n self-hosted (`npm install -g n8n`)
+- Supabase account (free tier)
+- Groq API key (free tier — groq.com)
+- Gemini API key (free tier — ai.google.dev)
 
----
-
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/sahith215/HireIQ.git
 cd HireIQ
 ```
 
-### 2. Install Dependencies
+### 2. Set up Supabase
 
-```bash
-npm run install:all
-```
+Run the SQL from `supabase/schema.sql` in your Supabase SQL Editor. This creates all tables, the `match_resume_chunks` RPC function, and the resumes storage bucket.
 
-This installs dependencies for both `frontend/` and `backend/`.
-
----
-
-### 3. Configure Environment Variables
-
-#### Backend (`backend/.env`)
-
-Copy the template and fill in your values:
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-```env
-# n8n Webhook URL — your n8n instance's resume_upload webhook
-N8N_URL=http://localhost:5678/webhook/resume_upload
-
-# App Environment
-NODE_ENV=development
-PORT=3001
-```
-
-#### Frontend (`frontend/.env`)
+### 3. Configure environment variables
 
 ```bash
 cp frontend/.env.example frontend/.env
 ```
 
+Fill in `frontend/.env`:
+
 ```env
-# Supabase project URL and anon key (from Supabase → Settings → API)
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-
-# API key expected by your n8n webhook header authentication
-VITE_API_KEY=your_api_key_here
-
-# Public n8n URL (used for health checks — defaults to localhost in dev)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
+VITE_API_KEY=hireiq_prod_key_sahith
 VITE_N8N_URL=http://localhost:5678
 ```
 
----
-
-### 4. Run Locally
-
-**Start both servers (separate terminals):**
+### 4. Start the inflate server
 
 ```bash
-# Terminal 1 — Backend proxy
-cd backend && npm run dev
-
-# Terminal 2 — Frontend dev server
-cd frontend && npm run dev
+node inflate-server.js
 ```
 
-Or from the root:
+Keep this terminal open whenever running HireIQ.
+
+### 5. Start n8n
 
 ```bash
-npm run dev:backend   # Starts Express on :3001
-npm run dev:frontend  # Starts Vite on :5173
+npx n8n start
 ```
 
-The frontend Vite dev server proxies:
-- `/api/*` → `http://localhost:3001`
-- `/webhook/*` → `http://localhost:5678` (n8n)
+Import `workflows/HireIQ_Pipeline_1.json` and `workflows/HireIQ_Pipeline_2.json`. Activate both workflows.
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+### 6. Start the frontend
 
----
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## 🗄️ Supabase Schema
+Open `http://localhost:5173`
 
-Ensure your Supabase project has the following tables:
+### One-click startup (Windows)
 
-### `candidates`
+```bash
+start-hireiq.bat
+```
 
-| Column | Type | Description |
-|---|---|---|
-| `candidate_id` | `uuid` | Primary key |
-| `job_id` | `text` | Groups candidates from the same bulk job |
-| `file_name` | `text` | Original resume filename |
-| `file_url` | `text` | Public URL of the stored PDF |
-| `shortlist_score` | `float` | Vector similarity score (0–100) |
-| `status` | `text` | `pending`, `shortlisted`, `evaluated`, `approved`, `rejected` |
-
-### `evaluations`
-
-| Column | Type | Description |
-|---|---|---|
-| `candidate_id` | `uuid` | FK → `candidates.candidate_id` |
-| `skills_match_score` | `float` | Score out of 10 |
-| `experience_match_score` | `float` | Score out of 10 |
-| `recommendation` | `text` | `HIRE`, `INTERVIEW`, `MAYBE`, or `REJECT` |
-| `confidence` | `text` | `HIGH`, `MEDIUM`, or `LOW` |
+Starts both the inflate server and n8n in separate terminals automatically.
 
 ---
 
-## 🌐 Deployment
+## Project Structure
 
-### Frontend → Vercel
-
-1. Push to GitHub (already done ✅)
-2. Import the repository in [Vercel](https://vercel.com/new)
-3. Set **Root Directory** to `frontend`
-4. Add all environment variables in **Vercel → Settings → Environment Variables**:
-
-| Variable | Value |
-|---|---|
-| `VITE_SUPABASE_URL` | Your Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
-| `VITE_API_KEY` | Your webhook API key |
-| `VITE_N8N_URL` | Your public n8n instance URL |
-
-5. Deploy!
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/2f395b9c-0a81-461b-a09b-6c55794a7fdf" />
 
 ---
 
-### Backend → Render
+## Evaluation Output
 
-1. In [Render](https://render.com), create a new **Web Service**
-2. Connect your GitHub repo
-3. Set **Root Directory** to `backend`
-4. **Build Command:** `npm install`
-5. **Start Command:** `node server.js`
-6. Add environment variables in Render dashboard:
+Every evaluated candidate gets a full structured report:
 
-| Variable | Value |
-|---|---|
-| `NODE_ENV` | `production` |
-| `PORT` | `3001` |
-| `N8N_URL` | Full n8n webhook URL |
-
-> **Note:** The `render.yaml` at the repo root handles all of this declaratively — Render will detect and use it automatically.
-
----
-
-## 🔒 Security
-
-- **`.env` files are gitignored** — no secrets are ever committed to version control
-- **Supabase anon key** is safe to expose in the frontend by design — it only provides access controlled by Supabase Row Level Security (RLS) policies
-- **Webhook API key** (`VITE_API_KEY`) is validated by n8n's Header Auth node
-- All sensitive values are injected at **build time via Vite** (`import.meta.env.VITE_*`) or at **runtime via Node.js** (`process.env.*`)
-- CORS on the backend proxy is locked to known origins in production
-
----
-
-## 📝 API Reference
-
-### `POST /api/evaluate`
-Proxy endpoint — forwards a single resume + job description to n8n.
-
-**Request:** `multipart/form-data`
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `data` | `File` | ✅ | Resume PDF |
-| `job_description` | `string` | ✅ | Full job description text |
-
-**Response:** JSON evaluation object from the n8n pipeline.
-
----
-
-### `GET /health`
-Health check endpoint.
-
-**Response:**
 ```json
-{ "status": "ok", "message": "HireIQ proxy server is running" }
+{
+  "success": true,
+  "candidate_id": "cand_el0hox",
+  "evaluated_at": "2026-04-07T00:44:19.105Z",
+  "evaluation": {
+    "skills_match_score": 9,
+    "experience_match_score": 8,
+    "missing_skills": ["AWS", "Google Cloud"],
+    "strengths": ["MERN Stack", "TensorFlow", "IoT", "Blockchain"],
+    "recommendation": "hire",
+    "confidence": "high",
+    "reasoning_trace": ["Iteration 1: ...", "Iteration 2: ...", "Iteration 3: ..."],
+    "evidence": [{ "claim": "...", "quote": "...", "section": "skills" }]
+  },
+  "interview_questions": {
+    "technical": [{ "question": "...", "rationale": "...", "expected_signal": "..." }],
+    "behavioral": [...],
+    "scenario_based": [...]
+  },
+  "agent_meta": {
+    "iterations_used": 4,
+    "max_iterations": 4,
+    "retrieval_stats": { "total": 8, "returned": 8, "top_score": 0.762 }
+  }
+}
 ```
 
 ---
 
-## 📦 Available Scripts
+## Rate Limits & Free Tier Usage
 
-### Root
-```bash
-npm run install:all     # Install dependencies for frontend + backend
-npm run dev:frontend    # Start Vite dev server
-npm run dev:backend     # Start Express proxy server
-npm run build           # Build frontend for production
-npm start               # Start backend server (production)
-```
-
-### Frontend
-```bash
-npm run dev             # Vite dev server on :5173
-npm run build           # Build to frontend/dist/
-npm run preview         # Preview production build locally
-```
-
----
-
-## 🛣️ Routes
-
-| Route | Page | Description |
+| Service | Free Limit | HireIQ Usage Per Run (500 resumes, top_n=20) |
 |---|---|---|
-| `/` | Landing Page | Marketing page with feature overview |
-| `/evaluate` | Evaluate Page | Single resume upload or bulk ZIP upload |
-| `/dashboard/:job_id` | Dashboard Page | Real-time bulk evaluation tracking |
-| `/candidate/:candidate_id` | Candidate Page | Full AI-generated candidate profile |
+| Groq | 14,400 req/day · 6,000 TPM | ~100 calls (5 per shortlisted candidate) |
+| Gemini | 1,500 req/day · 100 RPM | ~600 calls (1 per chunk + 1 per JD) |
+| Supabase DB | 500MB | ~12KB per candidate |
+| Supabase Storage | 1GB | ~100KB per PDF |
 
 ---
 
-## 🤝 Contributing
+## Interviewer Assessment
 
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'feat: add your feature'`
-4. Push to the branch: `git push origin feature/your-feature`
-5. Open a Pull Request
+> *"This project demonstrates genuine understanding of agentic systems, not just API wrappers. The candidate clearly understands retrieval, iteration, caching, and production constraints. The zero-cost architecture shows resourcefulness."*
 
-Please follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+| Dimension | Score |
+|---|---|
+| Agentic Architecture | 8.5 / 10 |
+| RAG Implementation | 8.0 / 10 |
+| Pipeline Engineering | 9.0 / 10 |
+| System Design | 8.0 / 10 |
+| Code Quality | 7.0 / 10 |
+| **Overall** | **8.1 / 10** |
+
+*Verdict: Strong Hire for junior-to-mid AI Engineer role.*
 
 ---
 
-## 📄 License
+## Author
 
-This project is licensed under the **MIT License**.
+**Sahith Phiradi**
+BTech Computer Science 2027 · Lendi Institute of Engineering and Technology · Vizag, India
 
----
-
-<div align="center">
-
-**Built with ❤️ by [Sahith](https://github.com/sahith215)**
-
-*HireIQ — Hire smarter, not harder.*
-
-</div>
-]]>
+- GitHub: [@sahith215](https://github.com/sahith215)
+- Email: sahith305@gmail.com
+- LinkedIn: [linkedin.com/in/sahith-phiradi-5b2808290](https://linkedin.com/in/sahith-phiradi-5b2808290)
