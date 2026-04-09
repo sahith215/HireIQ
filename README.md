@@ -178,11 +178,8 @@ Embedding magnitudes vary with text length. Cosine normalises for magnitude, mea
 
 ## The Agentic Loop
 
-Instead of one LLM call that produces shallow results, HireIQ runs a 4-iteration ReAct loop where each iteration has a single focused task:
-Iteration 1: OBSERVE resume chunks → THINK "What skills match?"       → partial_results.skills
-Iteration 2: OBSERVE + prior       → THINK "What experience matches?" → partial_results.experience
-Iteration 3: OBSERVE + prior       → THINK "What's missing?"          → partial_results.gaps
-Iteration 4: OBSERVE all prior     → THINK "Synthesise everything"    → final_output + recommendation
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/9a46c5ef-2437-499a-9ea1-89b6a3787b99" />
+
 
 The agent scratchpad accumulates across iterations. By iteration 4, the model synthesises from three complete prior analyses — producing evaluation depth comparable to a trained human reviewer.
 
