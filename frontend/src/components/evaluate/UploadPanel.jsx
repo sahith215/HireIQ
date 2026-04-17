@@ -103,29 +103,59 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
     try {
       if (mode === 'bulk') {
         try {
-          const response = await fetch(TARGET_URL, {
+          const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+          const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+      
+          // Fire the pipeline — don't await it
+          fetch(TARGET_URL, {
             method: 'POST',
             headers: { 'x-api-key': import.meta.env.VITE_API_KEY },
             body: formData,
-          })
-
-          if (!response.ok) {
-            throw new Error(`Request failed: ${response.status}`)
+          }).catch(() => {}) // ignore errors — we poll Supabase instead
+      
+          // Poll Supabase every 3 seconds for up to 5 minutes waiting for a new job
+          const startTime = Date.now()
+          const pollInterval = 3000
+          const maxWait = 300000 // 5 minutes
+      
+          const pollForJob = async () => {
+            while (Date.now() - startTime < maxWait) {
+              await new Promise(r => setTimeout(r, pollInterval))
+              try {
+                const res = await fetch(
+                  `${SUPABASE_URL}/rest/v1/jobs?select=id,created_at&order=created_at.desc&limit=1`,
+                  {
+                    headers: {
+                      apikey: SUPABASE_ANON_KEY,
+                      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    }
+                  }
+                )
+                const jobs = await res.json()
+                if (jobs && jobs.length > 0) {
+                  const latestJob = jobs[0]
+                  const jobAge = Date.now() - new Date(latestJob.created_at).getTime()
+                  // Only use jobs created in the last 5 minutes
+                  if (jobAge < 300000) {
+                    setStatus('done')
+                    navigate(`/dashboard/${latestJob.id}`)
+                    return
+                  }
+                }
+              } catch(e) {
+                // continue polling
+              }
+            }
+            setStatus('error')
+            setError('Processing timed out. Check your dashboard manually.')
           }
-
-          const data = await response.json()
-          const jobId = data.job_id || data.jobId
-
-          if (jobId) {
-            setStatus('done')
-            navigate(`/dashboard/${jobId}`)
-            return
-          } else {
-            throw new Error('No job_id returned from pipeline')
-          }
+      
+          pollForJob()
+          return
+      
         } catch (err) {
           setStatus('error')
-          setError('Processing failed: ' + err.message)
+          setError('Failed to start processing: ' + err.message)
           return
         }
       }
