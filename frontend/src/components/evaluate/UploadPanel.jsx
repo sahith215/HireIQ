@@ -105,7 +105,7 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
         // Fire and forget — don't wait for full pipeline completion
         // Set a short timeout just to get the job_id back (30 seconds max)
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000)
+        const timeoutId = setTimeout(() => controller.abort(), 120000)
         
         try {
           const response = await fetch(TARGET_URL, {
