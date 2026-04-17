@@ -102,29 +102,21 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
 
     try {
       if (mode === 'bulk') {
-        // Fire and forget — don't wait for full pipeline completion
-        // Set a short timeout just to get the job_id back (30 seconds max)
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 120000)
-        
         try {
           const response = await fetch(TARGET_URL, {
             method: 'POST',
             headers: { 'x-api-key': import.meta.env.VITE_API_KEY },
             body: formData,
-            signal: controller.signal,
           })
-          clearTimeout(timeoutId)
-          
+
           if (!response.ok) {
             throw new Error(`Request failed: ${response.status}`)
           }
-          
+
           const data = await response.json()
           const jobId = data.job_id || data.jobId
-          
+
           if (jobId) {
-            // Redirect immediately — dashboard will poll for results
             setStatus('done')
             navigate(`/dashboard/${jobId}`)
             return
@@ -132,13 +124,8 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
             throw new Error('No job_id returned from pipeline')
           }
         } catch (err) {
-          clearTimeout(timeoutId)
           setStatus('error')
-          if (err.name === 'AbortError') {
-            setError('Could not connect to processing server. Make sure n8n is running.')
-          } else {
-            setError(err.message)
-          }
+          setError('Processing failed: ' + err.message)
           return
         }
       }
