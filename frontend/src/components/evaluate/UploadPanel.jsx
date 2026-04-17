@@ -95,8 +95,8 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
       formData.append('top_n', topN.toString())
     }
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 120000)
+    const timeoutMs = mode === 'bulk' ? 600000 : 120000 // 10 min for bulk, 2 min for single
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
     
     const N8N_BASE = import.meta.env.VITE_N8N_URL || 'http://localhost:5678'
     const TARGET_URL = mode === 'single'
@@ -145,7 +145,13 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
       clearTimeout(timeoutId)
       setStatus('error')
       if (err.name === 'AbortError') {
-        setError('Request is taking longer than expected. Please try again.')
+        if (mode === 'bulk') {
+          // For bulk mode — don't show error, show dashboard redirect option
+          setStatus('analyzing')
+          setError('Bulk processing is taking longer than expected for large batches. This is normal — your resumes are still being processed. Check your dashboard in a few minutes.')
+        } else {
+          setError('Request timed out. Please try again.')
+        }
       } else if (err.message.includes('fetch')) {
         setError('Could not reach the evaluation server. Make sure it is running.')
       } else {
@@ -409,7 +415,7 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
               <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
               <path d="M12 2 A10 10 0 0 1 22 12" stroke="white" strokeWidth="3" strokeLinecap="round" />
             </svg>
-            {mode === 'single' ? 'AI is analyzing…' : 'Processing resumes...'}
+            {mode === 'single' ? 'AI is analyzing…' : `Processing ${file?.name} — Scoring all resumes and shortlisting top candidates. Large batches (10+ resumes) may take 3-5 minutes. Do not close this tab.`}
           </span>
         ) : (
           mode === 'single' ? 'Evaluate Resume →' : 'Start Bulk Analysis →'
