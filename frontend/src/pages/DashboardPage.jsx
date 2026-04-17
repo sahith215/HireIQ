@@ -22,6 +22,9 @@ function cleanFileName(fileName) {
 
 export default function DashboardPage() {
   const { job_id } = useParams()
+  console.log('SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL)
+  console.log('SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'MISSING')
+  console.log('job_id from URL:', job_id)
   const navigate = useNavigate()
 
   const [candidates, setCandidates] = useState([])
