@@ -31,6 +31,7 @@ app.get('/health', (req, res) => {
 app.post('/inflate', express.raw({ type: '*/*', limit: '50mb' }), (req, res) => {
   const zlib = require('zlib')
   const compressed = req.body
+  console.log('[inflate] received bytes:', compressed.length, 'isBuffer:', Buffer.isBuffer(compressed), 'first4:', compressed.slice(0,4).toString('hex'))
   if (!Buffer.isBuffer(compressed)) {
     return res.status(400).json({ error: 'Expected raw binary data' })
   }
