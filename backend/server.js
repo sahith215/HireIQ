@@ -34,7 +34,20 @@ app.post('/inflate', express.raw({ type: '*/*', limit: '50mb' }), (req, res) => 
   if (!Buffer.isBuffer(compressed)) {
     return res.status(400).json({ error: 'Expected raw binary data' })
   }
-  zlib.inflateRaw(compressed, (err, decompressed) => {
+  const tryInflate = (data, callback) => {
+    zlib.inflateRaw(data, (err, result) => {
+      if (!err) return callback(null, result)
+      zlib.inflate(data, (err2, result2) => {
+        if (!err2) return callback(null, result2)
+        zlib.gunzip(data, (err3, result3) => {
+          if (!err3) return callback(null, result3)
+          callback(new Error('All decompression methods failed: ' + err.message))
+        })
+      })
+    })
+  }
+
+  tryInflate(compressed, (err, decompressed) => {
     if (err) {
       return res.status(400).json({ error: err.message })
     }
