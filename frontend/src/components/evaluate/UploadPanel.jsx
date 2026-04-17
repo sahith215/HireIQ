@@ -98,7 +98,10 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 120000)
     
-    const TARGET_URL = mode === 'single' ? '/webhook/resume_upload' : '/webhook/bulk_shortlist'
+    const N8N_BASE = import.meta.env.VITE_N8N_URL || 'http://localhost:5678'
+    const TARGET_URL = mode === 'single'
+      ? `${N8N_BASE}/webhook/resume_upload`
+      : `${N8N_BASE}/webhook/bulk_shortlist`
 
     try {
       // Simulate phase progression for UX
