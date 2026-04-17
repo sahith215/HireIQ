@@ -43,8 +43,10 @@ export default function DashboardPage() {
         `${SUPABASE_URL}/rest/v1/candidates?job_id=eq.${job_id}&select=candidate_id,file_name,shortlist_score,status,file_url&order=shortlist_score.desc`,
         { headers: HEADERS }
       )
+      console.log('Candidates response status:', candidatesRes.status)
       if (!candidatesRes.ok) throw new Error(`Supabase error: ${candidatesRes.status}`)
       const candidatesData = await candidatesRes.json()
+      console.log('Candidates data:', JSON.stringify(candidatesData))
 
       setCandidates(candidatesData)
 
