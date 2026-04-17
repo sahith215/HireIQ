@@ -95,6 +95,7 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
       formData.append('top_n', topN.toString())
     }
 
+    const controller = new AbortController()
     const timeoutMs = mode === 'bulk' ? 600000 : 120000 // 10 min for bulk, 2 min for single
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
     
