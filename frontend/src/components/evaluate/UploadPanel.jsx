@@ -95,18 +95,60 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
       formData.append('top_n', topN.toString())
     }
 
-    const controller = new AbortController()
-    const timeoutMs = mode === 'bulk' ? 600000 : 120000 // 10 min for bulk, 2 min for single
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-    
     const N8N_BASE = import.meta.env.VITE_N8N_URL || 'http://localhost:5678'
     const TARGET_URL = mode === 'single'
       ? `${N8N_BASE}/webhook/resume_upload`
       : `${N8N_BASE}/webhook/bulk_shortlist`
 
     try {
+      if (mode === 'bulk') {
+        // Fire and forget — don't wait for full pipeline completion
+        // Set a short timeout just to get the job_id back (30 seconds max)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
+        
+        try {
+          const response = await fetch(TARGET_URL, {
+            method: 'POST',
+            headers: { 'x-api-key': import.meta.env.VITE_API_KEY },
+            body: formData,
+            signal: controller.signal,
+          })
+          clearTimeout(timeoutId)
+          
+          if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`)
+          }
+          
+          const data = await response.json()
+          const jobId = data.job_id || data.jobId
+          
+          if (jobId) {
+            // Redirect immediately — dashboard will poll for results
+            setStatus('done')
+            navigate(`/dashboard/${jobId}`)
+            return
+          } else {
+            throw new Error('No job_id returned from pipeline')
+          }
+        } catch (err) {
+          clearTimeout(timeoutId)
+          setStatus('error')
+          if (err.name === 'AbortError') {
+            setError('Could not connect to processing server. Make sure n8n is running.')
+          } else {
+            setError(err.message)
+          }
+          return
+        }
+      }
+
+      // SINGLE MODE FLOW (Full Wait)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 120000)
+      
       // Simulate phase progression for UX
-      setTimeout(() => setStatus('analyzing'), mode === 'single' ? 2000 : 1500)
+      setTimeout(() => setStatus('analyzing'), 2000)
 
       const response = await fetch(TARGET_URL, {
         method: 'POST',
@@ -130,29 +172,12 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
 
       const data = await response.json()
       setStatus('done')
-      
-      if (mode === 'single') {
-        onResult(data)
-      } else {
-        // Bulk mode redirect to dashboard page immediately
-        const jobId = data.job_id
-        if (jobId) {
-          navigate(`/dashboard/${jobId}`)
-        } else {
-          setError('Success, but no job_id was found in the response.')
-        }
-      }
+      onResult(data)
+
     } catch (err) {
-      clearTimeout(timeoutId)
       setStatus('error')
       if (err.name === 'AbortError') {
-        if (mode === 'bulk') {
-          // For bulk mode — don't show error, show dashboard redirect option
-          setStatus('analyzing')
-          setError('Bulk processing is taking longer than expected for large batches. This is normal — your resumes are still being processed. Check your dashboard in a few minutes.')
-        } else {
-          setError('Request timed out. Please try again.')
-        }
+        setError('Request timed out. Please try again.')
       } else if (err.message.includes('fetch')) {
         setError('Could not reach the evaluation server. Make sure it is running.')
       } else {
