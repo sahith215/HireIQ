@@ -106,6 +106,9 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
           const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
           const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
       
+          // Record start time before firing with 30-second safety buffer
+          const startedAt = new Date(Date.now() - 30000).toISOString()
+      
           // Fire the pipeline — don't await it
           fetch(TARGET_URL, {
             method: 'POST',
@@ -113,17 +116,17 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
             body: formData,
           }).catch(() => {}) // ignore errors — we poll Supabase instead
       
-          // Poll Supabase every 3 seconds for up to 5 minutes waiting for a new job
+          // Poll Supabase for a job created after we started
+          const maxWait = 600000 // 10 minutes
+          const pollInterval = 4000
           const startTime = Date.now()
-          const pollInterval = 3000
-          const maxWait = 300000 // 5 minutes
       
           const pollForJob = async () => {
             while (Date.now() - startTime < maxWait) {
               await new Promise(r => setTimeout(r, pollInterval))
               try {
                 const res = await fetch(
-                  `${SUPABASE_URL}/rest/v1/jobs?select=id,created_at&order=created_at.desc&limit=1`,
+                  `${SUPABASE_URL}/rest/v1/jobs?select=id,created_at&created_at=gte.${startedAt}&order=created_at.desc&limit=1`,
                   {
                     headers: {
                       apikey: SUPABASE_ANON_KEY,
@@ -133,14 +136,9 @@ export default function UploadPanel({ onResult, onLoading, status, setStatus }) 
                 )
                 const jobs = await res.json()
                 if (jobs && jobs.length > 0) {
-                  const latestJob = jobs[0]
-                  const jobAge = Date.now() - new Date(latestJob.created_at).getTime()
-                  // Only use jobs created in the last 5 minutes
-                  if (jobAge < 300000) {
-                    setStatus('done')
-                    navigate(`/dashboard/${latestJob.id}`)
-                    return
-                  }
+                  setStatus('done')
+                  navigate(`/dashboard/${jobs[0].id}`)
+                  return
                 }
               } catch(e) {
                 // continue polling
