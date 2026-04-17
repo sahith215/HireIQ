@@ -27,6 +27,30 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'HireIQ proxy server is running' })
 })
 
+// Inflate endpoint — Decompresses raw DEFLATE bytes from n8n into a PDF
+app.post('/inflate', express.raw({ type: '*/*', limit: '50mb' }), (req, res) => {
+  const zlib = require('zlib')
+  const compressed = req.body
+  if (!Buffer.isBuffer(compressed)) {
+    return res.status(400).json({ error: 'Expected raw binary data' })
+  }
+  zlib.inflateRaw(compressed, (err, decompressed) => {
+    if (err) {
+      return res.status(400).json({ error: err.message })
+    }
+    const magic = decompressed.slice(0, 4).toString('ascii')
+    if (!magic.startsWith('%PDF')) {
+      return res.status(422).json({ error: 'Not a valid PDF', magic })
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Length': decompressed.length,
+      'X-File-Size': decompressed.length
+    })
+    res.end(decompressed)
+  })
+})
+
 // Evaluate endpoint — receives PDF + job_description, forwards to n8n
 app.post('/api/evaluate', upload.single('data'), async (req, res) => {
   try {
