@@ -22,9 +22,6 @@ function cleanFileName(fileName) {
 
 export default function DashboardPage() {
   const { job_id } = useParams()
-  console.log('SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL)
-  console.log('SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'MISSING')
-  console.log('job_id from URL:', job_id)
   const navigate = useNavigate()
 
   const [candidates, setCandidates] = useState([])
@@ -43,10 +40,8 @@ export default function DashboardPage() {
         `${SUPABASE_URL}/rest/v1/candidates?job_id=eq.${job_id}&select=candidate_id,file_name,shortlist_score,status,file_url&order=shortlist_score.desc`,
         { headers: HEADERS }
       )
-      console.log('Candidates response status:', candidatesRes.status)
       if (!candidatesRes.ok) throw new Error(`Supabase error: ${candidatesRes.status}`)
       const candidatesData = await candidatesRes.json()
-      console.log('Candidates data:', JSON.stringify(candidatesData))
 
       setCandidates(candidatesData)
 
